@@ -112,6 +112,7 @@ public class DevonfwJavaProfile implements BuiltInQualityProfilesDefinition {
 
     try (InputStream inputStream = DevonfwJavaProfile.class.getResourceAsStream(DEVON4J_XML)) {
       DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+      dbFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
       DocumentBuilder builder = dbFactory.newDocumentBuilder();
       return builder.parse(inputStream);
     } catch (ParserConfigurationException pc) {
