@@ -3,6 +3,7 @@ package com.devonfw.ide.sonarqube.common.impl;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Locale;
 
 import org.apache.commons.lang.StringUtils;
@@ -26,9 +27,12 @@ public class DevonSonarDefinition implements RulesDefinition {
 
   private static final String RESOURCE_BASE_PATH = "/com/devonfw/ide/sonarqube/common/rules/devon4j";
 
+  static Context CONTEXT;
+
   @Override
   public void define(Context context) {
 
+    setContext(context);
     NewRepository repository = context.createRepository(REPOSITORY_KEY, Java.KEY).setName("devonfw Java Rules");
 
     for (Class<? extends JavaCheck> check : DevonSonarRegistrar.checkClasses()) {
@@ -97,6 +101,38 @@ public class DevonSonarDefinition implements RulesDefinition {
     } catch (IOException e) {
       throw new IllegalArgumentException("Failed to read: " + resource, e);
     }
+  }
+
+  /**
+   * Gets all repositories currently installed on the server and extracts their key
+   *
+   * @return list of all repo keys
+   */
+  public static List<Repository> getRepositories() {
+
+    // List<String> repoNames = new ArrayList<>();
+    // for (Repository r : DevonSonarDefinition.CONTEXT.repositories()) {
+    // repoNames.add(r.key());
+    // }
+    //
+    // return repoNames;
+    return CONTEXT.repositories();
+  }
+
+  /**
+   * Gets the repository specified by the repoKey given as the param of the method
+   *
+   * @param repoKey key of the repository to return
+   * @return repository object or null
+   */
+  public static Repository getRepoByKey(String repoKey) {
+
+    return CONTEXT.repository(repoKey);
+  }
+
+  private void setContext(Context context) {
+
+    DevonSonarDefinition.CONTEXT = context;
   }
 
 }
