@@ -3,17 +3,20 @@ package com.devonfw.ide.sonarqube.common.impl;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Objects;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.sonar.api.server.profile.BuiltInQualityProfilesDefinition;
+import org.sonar.api.utils.Version;
 import org.sonar.plugins.java.Java;
 import org.sonarsource.api.sonarlint.SonarLintSide;
 import org.w3c.dom.Document;
@@ -30,26 +33,26 @@ public class DevonfwJavaProfile implements BuiltInQualityProfilesDefinition {
 
   private static final Logger logger = Logger.getGlobal();
 
-  // private static final String QUALINSIGHT = "qualinsight-plugins-sonarqube-smell-plugin";
-  //
-  // private static final String PMD = "sonar-pmd-plugin";
-  //
-  // private static final String CHECKSTYLE = "checkstyle-sonar-plugin";
-  //
-  // private static final String FINDBUGS = "sonar-findbugs-plugin";
+  private static final String QUALINSIGHT = "qualinsight-plugins-sonarqube-smell-plugin";
+
+  private static final String PMD = "sonar-pmd-plugin";
+
+  private static final String CHECKSTYLE = "checkstyle-sonar-plugin";
+
+  private static final String FINDBUGS = "sonar-findbugs-plugin";
 
   private static Set<String> FORBIDDEN_REPO_KEYS = new HashSet<>();
 
-  // private static List<String> FORBIDDEN_JAVA_RULE_KEYS = Arrays.asList("S4143", "S4144", "S3052", "S888", "S2196",
-  // "S3042", "S2197", "S3281", "S3282", "S881", "S3047");
+  private static List<String> FORBIDDEN_JAVA_RULE_KEYS = Arrays.asList("S4143", "S4144", "S3052", "S888", "S2196",
+      "S3042", "S2197", "S3281", "S3282", "S881", "S3047", "S3046", "S4165", "S3067", "S3066", "S899", "S2162", "S3010",
+      "S1075", "S2164", "S3254", "S2165", "S2160", "S4349", "S4348", "S2166", "S2167", "S4347", "S2151", "S2153",
+      "S1065", "S2154", "S3242", "S2390");
 
   private File pluginDirectory;
 
-  // private static final List<Repository> AVAILABLE_REPOSITORIES = DevonSonarDefinition.getRepositories();
+  private static Version SONAR_JAVA_VERSION;
 
-  // private boolean isMinSQVersion;
-
-  // private List<String> pluginList;
+  private List<String> pluginList;
 
   static int one, two = 0;
 
@@ -88,6 +91,8 @@ public class DevonfwJavaProfile implements BuiltInQualityProfilesDefinition {
     String ruleKey = null;
     String severity = "";
 
+    disableRepoKeys();
+
     for (int i = 0; i < ruleList.getLength(); i++) {
 
       childrenOfRule = ruleList.item(i).getChildNodes();
@@ -108,9 +113,8 @@ public class DevonfwJavaProfile implements BuiltInQualityProfilesDefinition {
         }
       }
 
-      disableRepoKeys(repoKey);
       if (isRuleActivationAllowed(repoKey, ruleKey)) {
-        logger.log(Level.SEVERE, "Rule activation was allowed.");
+        // logger.log(Level.SEVERE, "Rule activation was allowed.");
         // try {
         currentRule = devonfwJava.activateRule(repoKey, ruleKey);
         if (!severity.isEmpty()) {
@@ -121,10 +125,8 @@ public class DevonfwJavaProfile implements BuiltInQualityProfilesDefinition {
         // ex.printStackTrace();
         // }
       }
-    }
 
-    logger.log(Level.SEVERE, "one: " + one);
-    logger.log(Level.SEVERE, "two: " + two);
+    }
 
     // try {
     // devonfwJava.done();
@@ -133,27 +135,14 @@ public class DevonfwJavaProfile implements BuiltInQualityProfilesDefinition {
     // logger.log(Level.WARNING, ex.getMessage());
     // return;
     // }
+
+    devonfwJava.done();
   }
 
   private boolean isRuleActivationAllowed(String repoKey, String ruleKey) {
 
-    if (!(FORBIDDEN_REPO_KEYS.contains(repoKey) || repoKey == null || ruleKey == null)) {
-      try {
-        if (repoKey.equals("java")) {
-          one += 1;
-          return Objects.nonNull(DevonSonarDefinition.getRepoByKey("squid").rule(ruleKey));
-        } else {
-          two += 1;
-          return Objects.nonNull(DevonSonarDefinition.getRepoByKey(repoKey).rule(ruleKey));
-        }
-      } catch (NullPointerException ex) {
-        logger.log(Level.WARNING, "Rule " + repoKey + ":" + ruleKey + " could not be found.");
-        return false;
-      }
-    } else {
-      logger.log(Level.WARNING, "The required plugin to instantiate " + repoKey + ":" + ruleKey + " is not installed.");
-      return false;
-    }
+    return !(FORBIDDEN_REPO_KEYS.contains(repoKey) || repoKey == null || ruleKey == null)
+        && !FORBIDDEN_JAVA_RULE_KEYS.contains(ruleKey);
   }
 
   private Document readQualityProfileXml() {
@@ -174,56 +163,58 @@ public class DevonfwJavaProfile implements BuiltInQualityProfilesDefinition {
     }
   }
 
-  // private List<String> getPlugins() {
-  //
-  // if (this.pluginList == null) {
-  // File[] fileList = this.pluginDirectory.listFiles(f -> f.getName().endsWith(".jar") && f.isFile());
-  // this.pluginList = Arrays.asList(fileList).stream().map(f -> f.getName()).collect(Collectors.toList());
-  // }
-  //
-  // return this.pluginList;
-  // }
+  private List<String> getPlugins() {
 
-  // private boolean hasPlugin(String name) {
-  //
-  // for (String plugin : getPlugins()) {
-  // if (plugin.contains(name)) {
-  // return true;
-  // }
-  // }
-  //
-  // return false;
-  // }
-
-  private void disableRepoKeys(String repoKey) {
-
-    /* Special case for the squid/java repository */
-    if (repoKey.equals("java") && DevonSonarDefinition.getRepoByKey("squid") != null) {
-      return;
+    if (this.pluginList == null) {
+      File[] fileList = this.pluginDirectory.listFiles(f -> f.getName().endsWith(".jar") && f.isFile());
+      this.pluginList = Arrays.asList(fileList).stream().map(f -> f.getName()).collect(Collectors.toList());
     }
 
-    if (DevonSonarDefinition.getRepoByKey(repoKey) == null) {
-      FORBIDDEN_REPO_KEYS.add(repoKey);
+    return this.pluginList;
+  }
+
+  private boolean hasPlugin(String name) {
+
+    for (String plugin : getPlugins()) {
+      if (plugin.contains(name)) {
+        return true;
+      }
     }
 
-    // if (!hasPlugin(QUALINSIGHT)) {
-    // FORBIDDEN_REPO_KEYS.add("qualinsight-smells");
-    // }
-    //
-    // if (!hasPlugin(PMD)) {
-    // FORBIDDEN_REPO_KEYS.add("pmd");
-    // FORBIDDEN_REPO_KEYS.add("pmd-unit-tests");
-    // }
-    //
-    // if (!hasPlugin(CHECKSTYLE)) {
-    // FORBIDDEN_REPO_KEYS.add("checkstyle");
-    // }
-    //
-    // if (!hasPlugin(FINDBUGS)) {
-    // FORBIDDEN_REPO_KEYS.add("findbugs");
-    // FORBIDDEN_REPO_KEYS.add("findsecbugs");
-    // FORBIDDEN_REPO_KEYS.add("fb-contrib");
-    // }
+    return false;
+  }
+
+  private void disableRepoKeys() {
+
+    if (!hasPlugin(QUALINSIGHT)) {
+      FORBIDDEN_REPO_KEYS.add("qualinsight-smells");
+    }
+
+    if (!hasPlugin(PMD)) {
+      FORBIDDEN_REPO_KEYS.add("pmd");
+      FORBIDDEN_REPO_KEYS.add("pmd-unit-tests");
+    }
+
+    if (!hasPlugin(CHECKSTYLE)) {
+      FORBIDDEN_REPO_KEYS.add("checkstyle");
+    }
+
+    if (!hasPlugin(FINDBUGS)) {
+      FORBIDDEN_REPO_KEYS.add("findbugs");
+      FORBIDDEN_REPO_KEYS.add("findsecbugs");
+      FORBIDDEN_REPO_KEYS.add("fb-contrib");
+    }
+  }
+
+  private Version getSonarJavaVersion() {
+
+    for (String plugin : this.pluginList) {
+      if (plugin.contains("sonar-java")) {
+        return Version.parse(plugin.split("-")[3].replace(".jar", ""));
+      }
+    }
+
+    return null;
   }
 
 }
